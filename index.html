@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Monitor</title>
+    <!-- Use Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --border-card: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.3);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            /* Smooth background gradients */
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(15, 23, 42, 1) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, rgba(30, 58, 138, 0.3) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, rgba(15, 23, 42, 1) 0, transparent 50%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 3rem 1rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            text-align: center;
+            /* Premium glowing text */
+            background: linear-gradient(135deg, #e0e7ff 0%, #60a5fa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 20px var(--accent-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        /* Glassmorphism Card Design */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 3px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            opacity: 0.8;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .card .sub-value {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* Micro-animations and interaction components */
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin-top: 1rem;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #10b981, #3b82f6);
+            width: 0%;
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.5s ease;
+        }
+
+        .system-info {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 0.5rem;
+            flex-direction: row;
+        }
+
+        .chip {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-card);
+            padding: 0.5rem 1rem;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .chip span {
+            color: var(--text-main);
+            font-weight: 600;
+            margin-left: 0.3rem;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); }
+        }
+
+        .status-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background-color: var(--success);
+            display: inline-block;
+            box-shadow: 0 0 12px var(--success);
+            animation: pulse 2s infinite;
+        }
+        
+        .status-danger {
+            background-color: var(--danger);
+            box-shadow: 0 0 12px var(--danger);
+        }
+
+        footer {
+            margin-top: 3rem;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+
+    <h1><span class="status-dot" id="status-dot"></span> Server Monitor Engine</h1>
+
+    <!-- Dashboard Grid -->
+    <div class="dashboard">
+
+        <!-- Top Full-Width Info -->
+        <div class="card system-info" id="system-info">
+            <!-- Populated via Javascript API request -->
+            <div style="color: var(--text-muted);">Initializing System Analysis...</div>
+        </div>
+
+        <!-- CPU Box -->
+        <div class="card">
+            <h2>🖥️ CPU Information</h2>
+            <div>
+                <div class="value" id="cpu-cores">-- Cores</div>
+                <div class="sub-value" id="cpu-model">Fetching model...</div>
+                <div class="sub-value" style="margin-top: 0.8rem;">
+                    Load Avg (1m, 5m, 15m): <br>
+                    <strong style="color: var(--text-main)" id="cpu-load">--</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Memory Box -->
+        <div class="card">
+            <h2>🧠 RAM Usage</h2>
+            <div>
+                <div class="value"><span id="mem-percent">--</span>%</div>
+                <div class="sub-value"><span id="mem-used">--</span> GB / <span id="mem-total">--</span> GB Used</div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="mem-bar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Uptime Box -->
+        <div class="card">
+            <h2>⏱️ Server Uptime</h2>
+            <div>
+                <div class="value" id="uptime">--:--:--</div>
+                <div class="sub-value">Continuous operation tracking active for this session.</div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>Powered by Node.js native OS metrics</footer>
+
+    <script>
+        // Formatting uptime seconds into days, hours, minutes, seconds
+        function formatUptime(seconds) {
+            const d = Math.floor(seconds / (3600*24));
+            const h = Math.floor(seconds % (3600*24) / 3600);
+            const m = Math.floor(seconds % 3600 / 60);
+            const s = Math.floor(seconds % 60);
+            return `${d > 0 ? d + 'd ' : ''}${h}h ${m}m ${s}s`;
+        }
+
+        // Fetching Data API
+        async function fetchStats() {
+            try {
+                const response = await fetch('/api/stats');
+                if (!response.ok) throw new Error('Network response was not ok');
+                
+                const data = await response.json();
+
+                // Dynamic System Info Panel Loading
+                const sysInfo = document.getElementById('system-info');
+                if (sysInfo.children[0]?.tagName !== 'DIV' || sysInfo.children[0]?.className !== 'chip') {
+                    sysInfo.innerHTML = `
+                        <div class="chip">Hostname: <span>${data.hostname}</span></div>
+                        <div class="chip">OS Platform: <span>${data.platform}</span></div>
+                    `;
+                }
+
+                // CPU
+                document.getElementById('cpu-cores').innerText = `${data.cpuCores} Cores`;
+                document.getElementById('cpu-model').innerText = data.cpuModel;
+                document.getElementById('cpu-load').innerText = data.loadAvg.join(', ');
+
+                // Memory
+                document.getElementById('mem-percent').innerText = data.memoryPercent;
+                document.getElementById('mem-used').innerText = data.memoryUsed;
+                document.getElementById('mem-total').innerText = data.memoryTotal;
+                
+                // Color grading Memory Bar
+                const memBar = document.getElementById('mem-bar');
+                const p = parseFloat(data.memoryPercent);
+                memBar.style.width = p + '%';
+                
+                if (p > 85) memBar.style.background = 'linear-gradient(90deg, #f59e0b, #ef4444)';
+                else if (p > 60) memBar.style.background = 'linear-gradient(90deg, #10b981, #f59e0b)';
+                else memBar.style.background = 'linear-gradient(90deg, #10b981, #3b82f6)';
+
+                // Uptime
+                document.getElementById('uptime').innerText = formatUptime(data.uptime);
+                
+                // Recover UI state if it was offline
+                document.getElementById('status-dot').className = 'status-dot';
+            } catch (error) {
+                console.error('Error fetching stats:', error);
+                document.getElementById('status-dot').className = 'status-dot status-danger';
+            }
+        }
+
+        // Real-Time Polling every 2 seconds
+        setInterval(fetchStats, 2000);
+        
+        // Initial Fetch
+        fetchStats();
+    </script>
+</body>
+</html>
